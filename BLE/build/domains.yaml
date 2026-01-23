@@ -1,0 +1,7 @@
+default: BLE
+build_dir: C:/Users/prich/Documents/Projet-IESE5-Localisation/BLE/build
+domains:
+  - name: BLE
+    build_dir: C:/Users/prich/Documents/Projet-IESE5-Localisation/BLE/build/BLE
+flash_order:
+  - BLE
