@@ -10,11 +10,8 @@ La méthode recommandée passe par le gestionnaire graphique de Nordic pour évi
 
 1. Télécharger et installer **nRF Connect for Desktop**.
 2. Télécharger et installer **SEGGER J-Link** (dernière version, nécessaire pour flasher les cartes Nordic).
-3. Lancer l'application et installer le module **Toolchain Manager**.
-4. Ouvrir Toolchain Manager :
-   - Installer la dernière version recommandée du **nRF Connect SDK v3.x.x**.
-   - Cela installera automatiquement Zephyr OS, le compilateur GCC ARM et les outils nécessaires.
-5. Dans VS Code (méthode recommandée par Nordic), installer l'extension : **nRF Connect for VS Code Extension Pack**.
+3. Lancer l'application et installer le module **Toolchain Manager**, qui redirige vers l'extension VS Code.
+4. Dans VS Code (méthode recommandée par Nordic), installer l'extension : **nRF Connect for VS Code Extension Pack**.
 
 > ⚠️ **Attention** : peut rentrer en conflit avec d'autres extensions comme *CMake Tools*. Désactiver celles-ci si nécessaire.
 
