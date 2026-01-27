@@ -1,0 +1,43 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "C:/Projet-IESE5-Localisation/UWB-test/build/_sysbuild/sysbuild/images/CMakeFiles/UWB-test"
+		},
+		{
+			"file" : "C:/Projet-IESE5-Localisation/UWB-test/build/_sysbuild/sysbuild/images/CMakeFiles/UWB-test.rule"
+		},
+		{
+			"file" : "C:/Projet-IESE5-Localisation/UWB-test/build/_sysbuild/sysbuild/images/CMakeFiles/UWB-test-complete.rule"
+		},
+		{
+			"file" : "C:/Projet-IESE5-Localisation/UWB-test/build/_sysbuild/sysbuild/images/UWB-test-prefix/src/UWB-test-stamp/UWB-test-build.rule"
+		},
+		{
+			"file" : "C:/Projet-IESE5-Localisation/UWB-test/build/_sysbuild/sysbuild/images/UWB-test-prefix/src/UWB-test-stamp/UWB-test-configure.rule"
+		},
+		{
+			"file" : "C:/Projet-IESE5-Localisation/UWB-test/build/_sysbuild/sysbuild/images/UWB-test-prefix/src/UWB-test-stamp/UWB-test-download.rule"
+		},
+		{
+			"file" : "C:/Projet-IESE5-Localisation/UWB-test/build/_sysbuild/sysbuild/images/UWB-test-prefix/src/UWB-test-stamp/UWB-test-install.rule"
+		},
+		{
+			"file" : "C:/Projet-IESE5-Localisation/UWB-test/build/_sysbuild/sysbuild/images/UWB-test-prefix/src/UWB-test-stamp/UWB-test-mkdir.rule"
+		},
+		{
+			"file" : "C:/Projet-IESE5-Localisation/UWB-test/build/_sysbuild/sysbuild/images/UWB-test-prefix/src/UWB-test-stamp/UWB-test-patch.rule"
+		},
+		{
+			"file" : "C:/Projet-IESE5-Localisation/UWB-test/build/_sysbuild/sysbuild/images/UWB-test-prefix/src/UWB-test-stamp/UWB-test-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"UWB-test"
+		],
+		"name" : "UWB-test"
+	}
+}
