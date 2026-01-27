@@ -1,37 +1,37 @@
-# Configuration de l'environnement nRF Connect (nRF54L15)
+# nRF Connect Environment Configuration (nRF54L15)
 
-Ce document décrit la procédure d'installation et de compilation pour le projet de démonstrateur Localisation (UWB/BLE).
-
----
-
-## 1. Installation des outils (Windows)
-
-La méthode recommandée passe par le gestionnaire graphique de Nordic pour éviter les erreurs de chemins et de dépendances.
-
-1. Télécharger et installer **nRF Connect for Desktop**.
-2. Télécharger et installer **SEGGER J-Link** (dernière version, nécessaire pour flasher les cartes Nordic).
-3. Lancer l'application et installer le module **Toolchain Manager**, qui redirige vers l'extension VS Code.
-4. Dans VS Code (méthode recommandée par Nordic), installer l'extension : **nRF Connect for VS Code Extension Pack**.
-
-> ⚠️ **Attention** : peut rentrer en conflit avec d'autres extensions comme *CMake Tools*. Désactiver celles-ci si nécessaire.
+This document describes the installation and compilation procedure for the Localization demonstrator project (UWB/BLE).
 
 ---
 
-## 2. Créer et configurer une application
+## 1. Tool Installation (Windows)
 
-1. Dans la barre latérale gauche (icône nRF), cliquer sur **Create a new application**.
-2. Configurer comme suit :
+The recommended method uses the Nordic graphical manager to avoid path and dependency errors.
+
+1. Download and install **nRF Connect for Desktop**.
+2. Download and install **SEGGER J-Link** (latest version, required to flash Nordic boards).
+3. Launch the application and install the **Toolchain Manager** module, which redirects to the VS Code extension.
+4. In VS Code (method recommended by Nordic), install the extension: **nRF Connect for VS Code Extension Pack**.
+
+> ⚠️ **Warning**: May conflict with other extensions such as *CMake Tools*. Disable these if necessary.
+
+---
+
+## 2. Creating and Configuring an Application
+
+1. In the left sidebar (nRF icon), click on **Create a new application**.
+2. Configure as follows:
    - *Create a blank application*
-   - Sélectionner un **path court** pour éviter les erreurs de compilation à cause d'un path trop long.
-   - Valider pour créer le projet.
+   - Select a **short path** to avoid compilation errors due to the path being too long.
+   - Validate to create the project.
 
 ---
 
 ## 3. Compilation (Build)
 
-Une fois le projet ouvert :
+Once the project is open:
 
-1. Dans le panneau **APPLICATIONS** (à gauche), cliquer sur **+ Add build configuration**.
-2. Sélectionner la cible matérielle (Board Target) : par exemple `nrf54l15dk/nrf54l15/cpuapp` pour notre carte.
-3. Cliquer sur **Générer et build**.
-4. Attendre la fin de la compilation. Si le message `Build completed successfully` apparaît dans le terminal, l'environnement est fonctionnel.
+1. In the **APPLICATIONS** panel (on the left), click on **+ Add build configuration**.
+2. Select the hardware target (Board Target): for example `nrf54l15dk/nrf54l15/cpuapp` for our board.
+3. Click on **Generate and build**.
+4. Wait for the compilation to finish. If the message `Build completed successfully` appears in the terminal, the environment is functional.
