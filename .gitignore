@@ -1,6 +1,7 @@
 # --- Zephyr Build System ---
 build/
 **/build/
+**/build1/
 *.hex
 *.bin
 *.elf
