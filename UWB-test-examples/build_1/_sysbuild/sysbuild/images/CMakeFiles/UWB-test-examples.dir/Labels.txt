@@ -1,0 +1,13 @@
+# Target labels
+ UWB-test-examples
+# Source files and their labels
+C:/Projet-IESE5-Localisation/UWB-test-examples/build_1/_sysbuild/sysbuild/images/CMakeFiles/UWB-test-examples
+C:/Projet-IESE5-Localisation/UWB-test-examples/build_1/_sysbuild/sysbuild/images/CMakeFiles/UWB-test-examples.rule
+C:/Projet-IESE5-Localisation/UWB-test-examples/build_1/_sysbuild/sysbuild/images/CMakeFiles/UWB-test-examples-complete.rule
+C:/Projet-IESE5-Localisation/UWB-test-examples/build_1/_sysbuild/sysbuild/images/UWB-test-examples-prefix/src/UWB-test-examples-stamp/UWB-test-examples-build.rule
+C:/Projet-IESE5-Localisation/UWB-test-examples/build_1/_sysbuild/sysbuild/images/UWB-test-examples-prefix/src/UWB-test-examples-stamp/UWB-test-examples-configure.rule
+C:/Projet-IESE5-Localisation/UWB-test-examples/build_1/_sysbuild/sysbuild/images/UWB-test-examples-prefix/src/UWB-test-examples-stamp/UWB-test-examples-download.rule
+C:/Projet-IESE5-Localisation/UWB-test-examples/build_1/_sysbuild/sysbuild/images/UWB-test-examples-prefix/src/UWB-test-examples-stamp/UWB-test-examples-install.rule
+C:/Projet-IESE5-Localisation/UWB-test-examples/build_1/_sysbuild/sysbuild/images/UWB-test-examples-prefix/src/UWB-test-examples-stamp/UWB-test-examples-mkdir.rule
+C:/Projet-IESE5-Localisation/UWB-test-examples/build_1/_sysbuild/sysbuild/images/UWB-test-examples-prefix/src/UWB-test-examples-stamp/UWB-test-examples-patch.rule
+C:/Projet-IESE5-Localisation/UWB-test-examples/build_1/_sysbuild/sysbuild/images/UWB-test-examples-prefix/src/UWB-test-examples-stamp/UWB-test-examples-update.rule

@@ -1,0 +1,22 @@
+cmake:
+  board:
+    name: 'nrf52833dk'
+    path:
+     - 'C:/ncs/v3.2.1/zephyr/boards/nordic/nrf52833dk'
+    qualifiers: 'nrf52833'
+    revision: ''
+  images:
+   - name: 'UWB-test-examples'
+     source-dir: 'C:/Projet-IESE5-Localisation/UWB-test-examples'
+     type: 'MAIN'
+  kconfig:
+    files:
+     - 'C:/Projet-IESE5-Localisation/UWB-test-examples/build_1/_sysbuild/empty.conf'
+     - 'C:/Projet-IESE5-Localisation/UWB-test-examples/build_1/_sysbuild/empty.conf'
+    user-files:
+     - 'C:/Projet-IESE5-Localisation/UWB-test-examples/build_1/_sysbuild/empty.conf'
+version: '0.1.0'
+west:
+  command: 'C:\ncs\toolchains\66cdf9b75e\opt\bin\Scripts\west build --build-dir c:/Projet-IESE5-Localisation/UWB-test-examples/build_1 c:/Projet-IESE5-Localisation/UWB-test-examples --pristine --board nrf52833dk/nrf52833 -- -DCONFIG_DEBUG_THREAD_INFO=y'
+  topdir: 'c:\ncs\v3.2.1'
+  version: '1.4.0'

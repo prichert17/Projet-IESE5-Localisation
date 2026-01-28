@@ -1,0 +1,15 @@
+&spi3 {
+    status = "okay";
+    cs-gpios = <&gpio0 29 GPIO_ACTIVE_LOW>;
+
+    dw3000@0 {
+        compatible = "decawave,dw3000";
+        reg = <0>;
+        spi-max-frequency = <8000000>;
+        
+        /* CORRECTION ICI : "irq-gpios" au lieu de "int-gpios" */
+        irq-gpios = <&gpio0 25 GPIO_ACTIVE_HIGH>;
+        
+        reset-gpios = <&gpio0 24 GPIO_ACTIVE_LOW>;
+    };
+};

@@ -1,5 +1,6 @@
 {
     "nrf-connect.applications": [
-        "${workspaceFolder}\\UWB-test"
+        "${workspaceFolder}\\UWB-test",
+        "${workspaceFolder}\\UWB-test-examples"
     ]
 }
