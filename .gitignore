@@ -1,1 +1,16 @@
-./UWB-test/build*/
+# --- Zephyr Build System ---
+build/
+**/build/
+*.hex
+*.bin
+*.elf
+*.map
+
+# --- Outils & Configuration locale ---
+.west/
+.vscode/
+*.log
+
+# --- Fichiers temporaires système ---
+.DS_Store
+Thumbs.db
