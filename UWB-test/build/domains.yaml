@@ -1,7 +1,0 @@
-default: UWB-test
-build_dir: C:/Projet-IESE5-Localisation/UWB-test/build
-domains:
-  - name: UWB-test
-    build_dir: C:/Projet-IESE5-Localisation/UWB-test/build/UWB-test
-flash_order:
-  - UWB-test

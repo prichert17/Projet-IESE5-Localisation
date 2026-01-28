@@ -1,2 +1,0 @@
-osource "C:/ncs/v3.2.1/nrf/boards/shields/*/Kconfig.defconfig"
-osource "C:/Projet-IESE5-Localisation/UWB-test/lib/dw3000-decadriver-source-master/platform/zephyr/boards/shields/*/Kconfig.defconfig"
