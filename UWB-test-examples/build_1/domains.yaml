@@ -1,7 +1,0 @@
-default: UWB-test-examples
-build_dir: C:/Projet-IESE5-Localisation/UWB-test-examples/build_1
-domains:
-  - name: UWB-test-examples
-    build_dir: C:/Projet-IESE5-Localisation/UWB-test-examples/build_1/UWB-test-examples
-flash_order:
-  - UWB-test-examples

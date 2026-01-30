@@ -49,6 +49,10 @@ int read_dev_id(void)
 
     dev_id = dwt_readdevid();
 
+    // --- AJOUT POUR DIAGNOSTIC ---
+    printk(">>> ID lu par le SPI : 0x%08X <<<\n", dev_id);
+    // -----------------------------
+
     /* Reads and validate device ID returns DWT_ERROR if it does not match expected else DWT_SUCCESS */
     if ((err = dwt_check_dev_id()) == DWT_SUCCESS)
     {
