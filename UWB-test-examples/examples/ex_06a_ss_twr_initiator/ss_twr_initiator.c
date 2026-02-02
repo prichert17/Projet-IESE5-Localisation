@@ -178,7 +178,7 @@ int ss_twr_initiator(void)
             dwt_writesysstatuslo(DWT_INT_RXFCG_BIT_MASK);
 
             /* A frame has been received, read it into the local buffer. */
-            frame_len = dwt_getframelength();
+            frame_len = dwt_getframelength(0);
             if (frame_len <= sizeof(rx_buffer))
             {
                 dwt_readrxdata(rx_buffer, frame_len, 0);
@@ -194,7 +194,7 @@ int ss_twr_initiator(void)
 
                     /* Retrieve poll transmission and response reception timestamps. See NOTE 9 below. */
                     poll_tx_ts = dwt_readtxtimestamplo32();
-                    resp_rx_ts = dwt_readrxtimestamplo32();
+                    resp_rx_ts = dwt_readrxtimestamplo32(0);
 
                     /* Read carrier integrator value and calculate clock offset ratio. See NOTE 11 below. */
                     clockOffsetRatio = ((float)dwt_readclockoffset()) / (uint32_t)(1 << 26);
@@ -272,7 +272,7 @@ int ss_twr_initiator(void)
  *    after an exchange of specific messages used to define those short addresses for each device participating to the ranging exchange.
  * 5. This timeout is for complete reception of a frame, i.e. timeout duration must take into account the length of the expected frame. Here the value
  *    is arbitrary but chosen large enough to make sure that there is enough time to receive the complete response frame sent by the responder at the
- *    6.8M data rate used (around 400 µs).
+ *    6.8M data rate used (around 400 ï¿½s).
  * 6. In a real application, for optimum performance within regulatory limits, it may be necessary to set TX pulse bandwidth and TX power, (using
  *    the dwt_configuretxrf API call) to per device calibrated values saved in the target system or the DW IC OTP memory.
  * 7. dwt_writetxdata() takes the full size of the message as a parameter but only copies (size - 2) bytes as the check-sum at the end of the frame is

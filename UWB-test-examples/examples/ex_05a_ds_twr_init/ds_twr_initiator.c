@@ -185,7 +185,7 @@ int ds_twr_initiator(void)
             dwt_writesysstatuslo(DWT_INT_RXFCG_BIT_MASK | DWT_INT_TXFRS_BIT_MASK);
 
             /* A frame has been received, read it into the local buffer. */
-            frame_len = dwt_getframelength();
+            frame_len = dwt_getframelength(0);
             if (frame_len <= RX_BUF_LEN)
             {
                 dwt_readrxdata(rx_buffer, frame_len, 0);
