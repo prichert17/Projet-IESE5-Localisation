@@ -74,7 +74,7 @@ static uint8_t rx_buffer[RX_BUF_LEN];
 static uint32_t status_reg = 0;
 
 /* Delay between frames, in UWB microseconds. See NOTE 1 below. */
-#define POLL_RX_TO_RESP_TX_DLY_UUS 650
+#define POLL_RX_TO_RESP_TX_DLY_UUS 1500
 
 /* Timestamps of frames transmission/reception. */
 static uint64_t poll_rx_ts;
@@ -138,6 +138,9 @@ int ss_twr_responder(void)
      * Note, in real low power applications the LEDs should not be used. */
     dwt_setlnapamode(DWT_LNA_ENABLE | DWT_PA_ENABLE);
 
+    printk("=== SS TWR Responder demarre ===\n");
+    printk("Config: CH=%d, Resp TX delay: %d uus\n", config.chan, POLL_RX_TO_RESP_TX_DLY_UUS);
+
     /* Loop forever responding to ranging requests. */
     while (1)
     {
@@ -155,7 +158,8 @@ int ss_twr_responder(void)
             dwt_writesysstatuslo(DWT_INT_RXFCG_BIT_MASK);
 
             /* A frame has been received, read it into the local buffer. */
-            frame_len = dwt_getframelength();
+            uint8_t rng_bit = 0;
+            frame_len = dwt_getframelength(&rng_bit);
             if (frame_len <= sizeof(rx_buffer))
             {
                 dwt_readrxdata(rx_buffer, frame_len, 0);
@@ -196,10 +200,21 @@ int ss_twr_responder(void)
 
                         /* Clear TXFRS event. */
                         dwt_writesysstatuslo(DWT_INT_TXFRS_BIT_MASK);
+                        
+                        /* Printk APRES l'envoi pour ne pas retarder le TX */
+                        printk("Poll RX -> TX Resp OK seq=%d\n", frame_seq_nb);
 
                         /* Increment frame sequence number after transmission of the poll message (modulo 256). */
                         frame_seq_nb++;
                     }
+                    else
+                    {
+                        printk("TX ECHEC ret=%d (delai trop court)\n", ret);
+                    }
+                }
+                else
+                {
+                    printk("Poll INVALIDE\n");
                 }
             }
         }

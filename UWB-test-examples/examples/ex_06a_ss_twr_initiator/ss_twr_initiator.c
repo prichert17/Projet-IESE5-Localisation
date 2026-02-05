@@ -79,9 +79,9 @@ static uint8_t rx_buffer[RX_BUF_LEN];
 static uint32_t status_reg = 0;
 
 /* Delay between frames, in UWB microseconds. See NOTE 1 below. */
-#define POLL_TX_TO_RESP_RX_DLY_UUS 240
+#define POLL_TX_TO_RESP_RX_DLY_UUS 1200
 /* Receive response timeout. See NOTE 5 below. */
-#define RESP_RX_TIMEOUT_UUS 400
+#define RESP_RX_TIMEOUT_UUS 1500
 
 /* Hold copies of computed time of flight and distance here for reference so that it can be examined at a debug breakpoint. */
 static double tof;
@@ -151,6 +151,12 @@ int ss_twr_initiator(void)
      * Note, in real low power applications the LEDs should not be used. */
     dwt_setlnapamode(DWT_LNA_ENABLE | DWT_PA_ENABLE);
 
+    printk("=== SS TWR Initiator demarre ===\n");
+    printk("Config: CH=%d, PRF=64MHz, DataRate=6M8\n", config.chan);
+    printk("TX delay to RX: %d uus, RX timeout: %d uus\n", POLL_TX_TO_RESP_RX_DLY_UUS, RESP_RX_TIMEOUT_UUS);
+    printk("Poll msg attend reponse de: 'V','E','W','A' (0x%02X%02X%02X%02X)\n", 
+           rx_resp_msg[5], rx_resp_msg[6], rx_resp_msg[7], rx_resp_msg[8]);
+
     /* Loop forever initiating ranging exchanges. */
     while (1)
     {
@@ -159,13 +165,23 @@ int ss_twr_initiator(void)
         dwt_writesysstatuslo(DWT_INT_TXFRS_BIT_MASK);
         dwt_writetxdata(sizeof(tx_poll_msg), tx_poll_msg, 0); /* Zero offset in TX buffer. */
         dwt_writetxfctrl(sizeof(tx_poll_msg), 0, 1);          /* Zero offset in TX buffer, ranging. */
+        
+        printk("\n--- Cycle #%d ---\n", frame_seq_nb);
+        printk("TX Poll: seq=%d, dest='W','A','V','E'\n", frame_seq_nb);
 
         /* Start transmission, indicating that a response is expected so that reception is enabled automatically after the frame is sent and the delay
          * set by dwt_setrxaftertxdelay() has elapsed. */
-        dwt_starttx(DWT_START_TX_IMMEDIATE | DWT_RESPONSE_EXPECTED);
+        int tx_ret = dwt_starttx(DWT_START_TX_IMMEDIATE | DWT_RESPONSE_EXPECTED);
+        if (tx_ret == DWT_SUCCESS) {
+            printk("TX Poll OK, attente reponse...\n");
+        } else {
+            printk("TX Poll ECHEC (ret=%d)\n", tx_ret);
+        }
 
         /* We assume that the transmission is achieved correctly, poll for reception of a frame or error/timeout. See NOTE 8 below. */
         waitforsysstatus(&status_reg, NULL, (DWT_INT_RXFCG_BIT_MASK | SYS_STATUS_ALL_RX_TO | SYS_STATUS_ALL_RX_ERR), 0);
+        
+        printk("Status reg: 0x%08X\n", status_reg);
 
         /* Increment frame sequence number after transmission of the poll message (modulo 256). */
         frame_seq_nb++;
@@ -173,21 +189,34 @@ int ss_twr_initiator(void)
         if (status_reg & DWT_INT_RXFCG_BIT_MASK)
         {
             uint16_t frame_len;
+            printk(">>> FRAME RECUE! <<<\n");
 
             /* Clear good RX frame event in the DW IC status register. */
             dwt_writesysstatuslo(DWT_INT_RXFCG_BIT_MASK);
 
             /* A frame has been received, read it into the local buffer. */
-            frame_len = dwt_getframelength(0);
+            uint8_t rng_bit = 0;
+            frame_len = dwt_getframelength(&rng_bit);
+            printk("Frame length: %d bytes\n", frame_len);
             if (frame_len <= sizeof(rx_buffer))
             {
                 dwt_readrxdata(rx_buffer, frame_len, 0);
+                
+                /* Afficher les données brutes reçues */
+                printk("RX data: ");
+                for (int i = 0; i < frame_len && i < 20; i++) {
+                    printk("%02X ", rx_buffer[i]);
+                }
+                printk("\n");
+                printk("RX src addr: '%c','%c','%c','%c' (attendu: 'V','E','W','A')\n", 
+                       rx_buffer[5], rx_buffer[6], rx_buffer[7], rx_buffer[8]);
 
                 /* Check that the frame is the expected response from the companion "SS TWR responder" example.
                  * As the sequence number field of the frame is not relevant, it is cleared to simplify the validation of the frame. */
                 rx_buffer[ALL_MSG_SN_IDX] = 0;
                 if (memcmp(rx_buffer, rx_resp_msg, ALL_MSG_COMMON_LEN) == 0)
                 {
+                    printk("Frame VALIDE - calcul distance...\n");
                     uint32_t poll_tx_ts, resp_rx_ts, poll_rx_ts, resp_tx_ts;
                     int32_t rtd_init, rtd_resp;
                     float clockOffsetRatio;
@@ -212,6 +241,21 @@ int ss_twr_initiator(void)
                     /* Display computed distance on LCD. */
                     snprintf(dist_str, sizeof(dist_str), "DIST: %3.2f m", distance);
                     test_run_info((unsigned char *)dist_str);
+                    
+                    /* Affichage avec printk (sans support float) */
+                    int dist_m = (int)distance;
+                    int dist_cm = (int)((distance - dist_m) * 100);
+                    if (dist_cm < 0) dist_cm = -dist_cm;
+                    printk("*** DISTANCE: %d.%02d m ***\n", dist_m, dist_cm);
+                }
+                else
+                {
+                    printk("Frame INVALIDE - memcmp echoue!\n");
+                    printk("Attendu: ");
+                    for (int i = 0; i < ALL_MSG_COMMON_LEN; i++) {
+                        printk("%02X ", rx_resp_msg[i]);
+                    }
+                    printk("\n");
                 }
             }
         }
@@ -219,6 +263,18 @@ int ss_twr_initiator(void)
         {
             /* Clear RX error/timeout events in the DW IC status register. */
             dwt_writesysstatuslo(SYS_STATUS_ALL_RX_TO | SYS_STATUS_ALL_RX_ERR);
+            
+            /* Afficher la raison de l'échec */
+            if (status_reg & SYS_STATUS_ALL_RX_TO) {
+                printk("!!! RX TIMEOUT - aucune reponse du responder !!!\n");
+            }
+            if (status_reg & SYS_STATUS_ALL_RX_ERR) {
+                printk("!!! RX ERROR - erreur de reception (status=0x%08X) !!!\n", status_reg);
+                if (status_reg & DWT_INT_RXPHE_BIT_MASK) printk("  - PHR Error\n");
+                if (status_reg & DWT_INT_RXFCE_BIT_MASK) printk("  - FCS Error\n");
+                if (status_reg & DWT_INT_RXFSL_BIT_MASK) printk("  - Frame Sync Loss\n");
+                if (status_reg & DWT_INT_RXSTO_BIT_MASK) printk("  - SFD Timeout\n");
+            }
         }
 
         /* Execute a delay between ranging exchanges. */
