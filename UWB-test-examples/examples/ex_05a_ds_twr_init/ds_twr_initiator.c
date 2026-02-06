@@ -82,12 +82,12 @@ static uint32_t status_reg = 0;
 
 /* Delay between frames, in UWB microseconds. See NOTE 4 below. */
 /* This is the delay from the end of the frame transmission to the enable of the receiver, as programmed for the DW IC's wait for response feature. */
-#define POLL_TX_TO_RESP_RX_DLY_UUS (300 + CPU_PROCESSING_TIME)
+#define POLL_TX_TO_RESP_RX_DLY_UUS 1200
 /* This is the delay from Frame RX timestamp to TX reply timestamp used for calculating/setting the DW IC's delayed TX function.
  * This value is required to be larger than POLL_TX_TO_RESP_RX_DLY_UUS. Please see NOTE 4 for more details. */
-#define RESP_RX_TO_FINAL_TX_DLY_UUS (300 + CPU_PROCESSING_TIME)
+#define RESP_RX_TO_FINAL_TX_DLY_UUS 1500
 /* Receive response timeout. See NOTE 5 below. */
-#define RESP_RX_TIMEOUT_UUS 300
+#define RESP_RX_TIMEOUT_UUS 1500
 /* Preamble timeout, in multiple of PAC size. See NOTE 7 below. */
 #define PRE_TIMEOUT 5
 
@@ -159,9 +159,15 @@ int ds_twr_initiator(void)
     dwt_setlnapamode(DWT_LNA_ENABLE | DWT_PA_ENABLE);
     // dwt_setleds(DWT_LEDS_ENABLE | DWT_LEDS_INIT_BLINK);
 
+    printk("=== DS TWR Initiator demarre ===\n");
+    printk("POLL_TX_TO_RESP_RX: %d uus, RESP_RX_TO_FINAL_TX: %d uus\n", 
+           POLL_TX_TO_RESP_RX_DLY_UUS, RESP_RX_TO_FINAL_TX_DLY_UUS);
+
     /* Loop forever initiating ranging exchanges. */
     while (1)
     {
+        printk("\n--- Cycle #%d ---\n", frame_seq_nb);
+        
         /* Write frame data to DW IC and prepare transmission. See NOTE 9 below. */
         tx_poll_msg[ALL_MSG_SN_IDX] = frame_seq_nb;
         dwt_writetxdata(sizeof(tx_poll_msg), tx_poll_msg, 0);  /* Zero offset in TX buffer. */
@@ -170,6 +176,7 @@ int ds_twr_initiator(void)
         /* Start transmission, indicating that a response is expected so that reception is enabled automatically after the frame is sent and the delay
          * set by dwt_setrxaftertxdelay() has elapsed. */
         dwt_starttx(DWT_START_TX_IMMEDIATE | DWT_RESPONSE_EXPECTED);
+        printk("TX Poll OK, attente Response...\n");
 
         /* We assume that the transmission is achieved correctly, poll for reception of a frame or error/timeout. See NOTE 10 below. */
         waitforsysstatus(&status_reg, NULL, (DWT_INT_RXFCG_BIT_MASK | SYS_STATUS_ALL_RX_TO | SYS_STATUS_ALL_RX_ERR), 0);
@@ -180,6 +187,7 @@ int ds_twr_initiator(void)
         if (status_reg & DWT_INT_RXFCG_BIT_MASK)
         {
             uint16_t frame_len;
+            printk("Response RECUE!\n");
 
             /* Clear good RX frame event and TX frame sent in the DW IC status register. */
             dwt_writesysstatuslo(DWT_INT_RXFCG_BIT_MASK | DWT_INT_TXFRS_BIT_MASK);
@@ -196,6 +204,7 @@ int ds_twr_initiator(void)
             rx_buffer[ALL_MSG_SN_IDX] = 0;
             if (memcmp(rx_buffer, rx_resp_msg, ALL_MSG_COMMON_LEN) == 0)
             {
+                printk("Response VALIDE, envoi Final...\n");
                 uint32_t final_tx_time;
                 int ret;
 
@@ -229,16 +238,32 @@ int ds_twr_initiator(void)
 
                     /* Clear TXFRS event. */
                     dwt_writesysstatuslo(DWT_INT_TXFRS_BIT_MASK);
+                    printk("TX Final OK!\n");
 
                     /* Increment frame sequence number after transmission of the final message (modulo 256). */
                     frame_seq_nb++;
                 }
+                else
+                {
+                    printk("TX Final ECHEC ret=%d\n", ret);
+                }
+            }
+            else
+            {
+                printk("Response INVALIDE\n");
             }
         }
         else
         {
             /* Clear RX error/timeout events in the DW IC status register. */
             dwt_writesysstatuslo(SYS_STATUS_ALL_RX_TO | SYS_STATUS_ALL_RX_ERR | DWT_INT_TXFRS_BIT_MASK);
+            
+            if (status_reg & SYS_STATUS_ALL_RX_TO) {
+                printk("RX TIMEOUT - pas de Response\n");
+            }
+            if (status_reg & SYS_STATUS_ALL_RX_ERR) {
+                printk("RX ERROR\n");
+            }
         }
 
         /* Execute a delay between ranging exchanges. */
