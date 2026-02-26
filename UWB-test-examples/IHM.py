@@ -2,6 +2,8 @@ import sys
 import re
 import threading
 import time
+import csv
+import os
 from collections import deque
 from datetime import datetime
 
@@ -198,6 +200,12 @@ class DistanceMonitorApp:
         self.avg_distance = 0.0
         self.measurement_count = 0
         
+        # Export CSV
+        self.csv_export_folder = r"C:\Users\prich\Documents\Résultat mesures"
+        self.csv_file = None
+        self.csv_writer = None
+        self.csv_exporting = False
+        
         # Créer le lecteur approprié
         if reader_type == "simulation":
             self.reader = SimulatedReader()
@@ -318,6 +326,21 @@ class DistanceMonitorApp:
                                   bg='#ff6b6b', fg='white')
         self.clear_btn.pack(side=tk.LEFT, padx=5)
         
+        tk.Label(button_frame, text="Nom CSV:", font=('Helvetica', 10), 
+                 fg='#888888', bg='#1e1e1e').pack(side=tk.LEFT, padx=(15, 2))
+        
+        self.filename_var = tk.StringVar()
+        self.filename_entry = tk.Entry(button_frame, textvariable=self.filename_var, 
+                                      font=('Helvetica', 10), width=20, 
+                                      bg='#2d2d2d', fg='white', insertbackground='white')
+        self.filename_entry.pack(side=tk.LEFT, padx=5)
+        
+        self.export_btn = tk.Button(button_frame, text="📁 Démarrer Export CSV", 
+                                   font=('Helvetica', 10),
+                                   command=self._toggle_csv_export,
+                                   bg='#4ecdc4', fg='white')
+        self.export_btn.pack(side=tk.LEFT, padx=5)
+        
         self.status_label = tk.Label(button_frame, text="🔴 En attente de connexion RTT...", 
                                     font=('Helvetica', 10),
                                     fg='#ff6b6b', bg='#1e1e1e')
@@ -401,6 +424,69 @@ class DistanceMonitorApp:
         # Mise à jour du graphique
         if MATPLOTLIB_AVAILABLE and len(self.distances) > 1:
             self._update_graph()
+        
+        # Export CSV si actif
+        if self.csv_exporting and self.csv_writer:
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+            self.csv_writer.writerow([timestamp, distance, self.min_distance, self.max_distance, self.avg_distance])
+            self.csv_file.flush()  # S'assurer que les données sont écrites
+            
+    def _toggle_csv_export(self):
+        """Démarre ou arrête l'export CSV"""
+        if self.csv_exporting:
+            self._stop_csv_export()
+        else:
+            self._start_csv_export()
+            
+    def _start_csv_export(self):
+        """Démarre l'export CSV dans un nouveau fichier"""
+        try:
+            # Créer le dossier s'il n'existe pas
+            os.makedirs(self.csv_export_folder, exist_ok=True)
+            
+            # Déterminer le nom du fichier
+            custom_name = self.filename_var.get().strip()
+            if custom_name:
+                if not custom_name.lower().endswith('.csv'):
+                    custom_name += '.csv'
+                filename = custom_name
+            else:
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                filename = f"mesures_uwb_{timestamp}.csv"
+                
+            filepath = os.path.join(self.csv_export_folder, filename)
+            file_exists = os.path.isfile(filepath)
+            
+            # Ouvrir le fichier CSV (en mode ajout si le fichier existe déjà)
+            self.csv_file = open(filepath, 'a' if file_exists else 'w', newline='', encoding='utf-8')
+            self.csv_writer = csv.writer(self.csv_file)
+            
+            # Écrire l'en-tête seulement si c'est un nouveau fichier
+            if not file_exists:
+                self.csv_writer.writerow(['Timestamp', 'Distance (m)', 'Min (m)', 'Max (m)', 'Moyenne (m)'])
+            self.csv_file.flush()
+            
+            self.csv_exporting = True
+            self.export_btn.config(text="⏹️ Arrêter Export CSV", bg='#ff6b6b')
+            self.filename_entry.config(state='disabled')  # Désactiver le champ texte
+            self._log_message(f"Export CSV démarré: {filepath}")
+            
+        except Exception as e:
+            messagebox.showerror("Erreur", f"Impossible de créer le fichier CSV:\n{str(e)}")
+            
+    def _stop_csv_export(self):
+        """Arrête l'export CSV"""
+        if self.csv_file:
+            try:
+                self.csv_file.close()
+                self._log_message("Export CSV arrêté")
+            except:
+                pass
+        self.csv_file = None
+        self.csv_writer = None
+        self.csv_exporting = False
+        self.export_btn.config(text="📁 Démarrer Export CSV", bg='#4ecdc4')
+        self.filename_entry.config(state='normal')  # Réactiver le champ texte
             
     def _update_graph(self):
         """Mise à jour du graphique"""
@@ -464,6 +550,7 @@ class DistanceMonitorApp:
         
     def _on_closing(self):
         """Fermeture propre de l'application"""
+        self._stop_csv_export()  # Fermer le fichier CSV proprement
         self.reader.stop()
         self.root.destroy()
 
