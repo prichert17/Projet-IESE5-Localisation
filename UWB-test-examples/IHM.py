@@ -3,6 +3,7 @@ import re
 import threading
 import time
 import csv
+import statistics
 import os
 from collections import deque
 from datetime import datetime
@@ -274,6 +275,7 @@ class DistanceMonitorApp:
             ("Min", "min_label", "#ff6b6b"),
             ("Max", "max_label", "#4ecdc4"),
             ("Moyenne", "avg_label", "#ffe66d"),
+            ("Médiane", "median_label", "#ffd480"),
             ("Mesures", "count_label", "#95e1d3")
         ]
         
@@ -391,6 +393,23 @@ class DistanceMonitorApp:
         elif self.measurement_count > 0:
             self.status_label.config(text="🟢 Connecté - Réception des données", fg='#00ff88')
             
+    def _compute_sliding_average(self):
+        """Retourne la moyenne glissante des dernières mesures (jusqu'à 100).
+        Utilise le buffer `self.distances` défini avec maxlen=100.
+        """
+        if not self.distances:
+            return 0.0
+        return sum(self.distances) / len(self.distances)
+
+    def _compute_median(self):
+        """Retourne la médiane des dernières mesures stockées (jusqu'à 100).
+        Renvoie 0.0 si aucune mesure n'est disponible.
+        """
+        if not self.distances:
+            return 0.0
+        # Utilise statistics.median pour gérer pair/impair proprement
+        return statistics.median(self.distances)
+
     def _update_distance(self, distance):
         """Mise à jour de l'affichage de la distance"""
         self.current_distance = distance
@@ -403,13 +422,18 @@ class DistanceMonitorApp:
         self.distances.append(distance)
         self.timestamps.append(datetime.now())
         
-        self.avg_distance = sum(self.distances) / len(self.distances)
+        # Utilisation de la fonction de moyenne glissante et calcul de la médiane
+        self.avg_distance = self._compute_sliding_average()
+        self.median_distance = self._compute_median()
         
         # Mise à jour des labels
         self.distance_label.config(text=f"{distance:.2f} m")
         self.min_label.config(text=f"{self.min_distance:.2f} m")
         self.max_label.config(text=f"{self.max_distance:.2f} m")
         self.avg_label.config(text=f"{self.avg_distance:.2f} m")
+        # Mettre à jour le label médiane s'il existe
+        if hasattr(self, 'median_label'):
+            self.median_label.config(text=f"{self.median_distance:.2f} m")
         self.count_label.config(text=str(self.measurement_count))
         
         # Couleur selon la distance
@@ -428,7 +452,7 @@ class DistanceMonitorApp:
         # Export CSV si actif
         if self.csv_exporting and self.csv_writer:
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
-            self.csv_writer.writerow([timestamp, distance, self.min_distance, self.max_distance, self.avg_distance])
+            self.csv_writer.writerow([timestamp, distance, self.min_distance, self.max_distance, self.avg_distance, getattr(self, 'median_distance', 0.0)])
             self.csv_file.flush()  # S'assurer que les données sont écrites
             
     def _toggle_csv_export(self):
@@ -463,7 +487,7 @@ class DistanceMonitorApp:
             
             # Écrire l'en-tête seulement si c'est un nouveau fichier
             if not file_exists:
-                self.csv_writer.writerow(['Timestamp', 'Distance (m)', 'Min (m)', 'Max (m)', 'Moyenne (m)'])
+                self.csv_writer.writerow(['Timestamp', 'Distance (m)', 'Min (m)', 'Max (m)', 'Moyenne (m)', 'Médiane (m)'])
             self.csv_file.flush()
             
             self.csv_exporting = True
@@ -529,12 +553,15 @@ class DistanceMonitorApp:
         self.min_distance = float('inf')
         self.max_distance = 0.0
         self.avg_distance = 0.0
+        self.median_distance = 0.0
         self.measurement_count = 0
         
         self.distance_label.config(text="-- m", fg='#00ff88')
         self.min_label.config(text="--")
         self.max_label.config(text="--")
         self.avg_label.config(text="--")
+        if hasattr(self, 'median_label'):
+            self.median_label.config(text="--")
         self.count_label.config(text="0")
         
         if MATPLOTLIB_AVAILABLE:
