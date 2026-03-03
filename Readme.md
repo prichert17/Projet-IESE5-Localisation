@@ -65,16 +65,8 @@ To test localization with the **nRF54L15 DK** dev kits, we rely on the BLE Chann
 2. In VS Code, open the folder of a specific example (e.g., channel_sounding_ras_initiator or channel_sounding_ras_reflector).
 3. Click the nRF icon and select **"Add an existing application"**, pointing to the chosen directory.
 4. Select **"Add Build Configuration"**, then choose:
-   **Board:** 'nrf54l15dk/nrf54l15/cpuapp'
-5. Click **Build**, then optionally **Flash** to program the development ki
-
-
-
-### Hardware Configuration (Overlay)
-The nRF54L15 communicates with the DW3000 via the **SPI** bus. You must ensure that the board's overlay file correctly defines the pins:
-* **SCK / MOSI / MISO**: SPI Bus.
-* **CS (Chip Select)**: Peripheral selection.
-* **IRQ / RST**: Interrupt and reset signals for the UWB module.
+   **Board:**  `nrf54l15dk/nrf54l15/cpuapp`
+5. Click **Build**, then optionally **Flash** to program the development kit on your card.
 
 ---
 
