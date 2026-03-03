@@ -3,7 +3,15 @@
 *~
 
 # build
+/build*/
 build/
-build_*/
 sysbuild/
 sysbuild_*/
+
+# Compiled files
+*.elf
+*.hex
+*.bin
+*.map
+*.o
+*.obj
