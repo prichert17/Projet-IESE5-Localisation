@@ -4,14 +4,5 @@
 
 # build
 /build*/
-build/
-sysbuild/
-sysbuild_*/
 
-# Compiled files
-*.elf
-*.hex
-*.bin
-*.map
-*.o
-*.obj
+
