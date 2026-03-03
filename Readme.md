@@ -55,6 +55,29 @@ The nRF54L15 communicates with the DW3000 via the **SPI** bus. You must ensure t
 
 ---
 
+## 4.bis Using nRF54L15 Examples (BLE)
+
+To test localization with the **nRF54L15 DK** dev kits, we rely on the BLE Channel Sounding applications provided in this repository: the **Initiator** and the **Reflector**.
+
+### Application Setup
+1. Clone the examples repository:  
+   `git clone https://github.com/prichert17/Projet-IESE5-Localisation.git`
+2. In VS Code, open the folder of a specific example (e.g., channel_sounding_ras_initiator or channel_sounding_ras_reflector).
+3. Click the nRF icon and select **"Add an existing application"**, pointing to the chosen directory.
+4. Select **"Add Build Configuration"**, then choose:
+   **Board:** 'nrf54l15dk/nrf54l15/cpuapp'
+5. Click **Build**, then optionally **Flash** to program the development ki
+
+
+
+### Hardware Configuration (Overlay)
+The nRF54L15 communicates with the DW3000 via the **SPI** bus. You must ensure that the board's overlay file correctly defines the pins:
+* **SCK / MOSI / MISO**: SPI Bus.
+* **CS (Chip Select)**: Peripheral selection.
+* **IRQ / RST**: Interrupt and reset signals for the UWB module.
+
+---
+
 ## 4.1 Flashing and Debugging
 
 Once the build configuration is generated (see Section 3):
