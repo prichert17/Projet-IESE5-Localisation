@@ -1,0 +1,5 @@
+{
+    "nrf-connect.applications": [
+        "${workspaceFolder}\\channel_sounding_ras_initiator"
+    ]
+}
