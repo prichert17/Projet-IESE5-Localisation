@@ -114,6 +114,7 @@ int simple_rx(void)
             uint8_t rng_bit = 0;
             /* A frame has been received, copy it to our local buffer. */
             frame_len = dwt_getframelength(&rng_bit); /* See NOTE 4 below. */
+            printf("Frame length: %d\n", frame_len);
             if (frame_len <= FRAME_LEN_MAX)
             {
                 dwt_readrxdata(rx_buffer, frame_len - FCS_LEN, 0); /* No need to read the FCS/CRC. */

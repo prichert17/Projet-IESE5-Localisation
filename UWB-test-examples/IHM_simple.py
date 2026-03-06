@@ -189,12 +189,24 @@ class DistanceMonitorApp:
     def __init__(self, root, reader_type="simulation", serial_no=None):
         self.root = root
         self.root.title("UWB Distance Monitor - SS-TWR")
-        self.root.geometry("900x700")
+        
+        # Adapter la fenêtre à la taille de l'écran
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+        self.root.geometry(f"{screen_width}x{screen_height}+0+0")
+        
+        # Maximiser la fenêtre (fonctionne sur Windows)
+        try:
+            self.root.state('zoomed')
+        except tk.TclError:
+            pass # Fallback si 'zoomed' n'est pas supporté sur l'OS
+            
         self.root.configure(bg='#1e1e1e')
         
         # Données
         self.distances = deque(maxlen=100)  # Garder les 100 dernières mesures
         self.timestamps = deque(maxlen=100)
+        self.median_window = deque(maxlen=10)  # Fenêtre glissante pour la médiane
         self.current_distance = 0.0
         self.min_distance = float('inf')
         self.max_distance = 0.0
@@ -202,7 +214,7 @@ class DistanceMonitorApp:
         self.measurement_count = 0
         
         # Export CSV
-        self.csv_export_folder = r"C:\Users\prich\Documents\Résultat mesures"
+        self.csv_export_folder = r"C:\Projet-IESE5-Localisation\Résultat mesures"
         self.csv_file = None
         self.csv_writer = None
         self.csv_exporting = False
@@ -217,8 +229,8 @@ class DistanceMonitorApp:
         else:
             self.reader = SimulatedReader()
         
-        # Regex pour parser les distances
-        self.distance_pattern = re.compile(r'DIST:\s*([\d.]+)\s*m')
+        # Regex pour parser les distances (format: *** DISTANCE: 0.56 m ***)
+        self.distance_pattern = re.compile(r'\*\*\*\s*DISTANCE:\s*([\d.]+)\s*m\s*\*\*\*')
         
         # Construction de l'interface
         self._build_ui()
@@ -246,81 +258,11 @@ class DistanceMonitorApp:
         
         # Frame principal
         main_frame = tk.Frame(self.root, bg='#1e1e1e')
-        main_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=(20, 5))
         
-        # Titre
-        title_label = tk.Label(main_frame, text="📡 UWB Distance Monitor", 
-                              font=('Helvetica', 24, 'bold'),
-                              fg='#00ff88', bg='#1e1e1e')
-        title_label.pack(pady=(0, 20))
-        
-        # Frame pour la distance actuelle
-        distance_frame = tk.Frame(main_frame, bg='#2d2d2d', relief='ridge', bd=2)
-        distance_frame.pack(fill=tk.X, pady=10)
-        
-        tk.Label(distance_frame, text="Distance actuelle", 
-                font=('Helvetica', 14), fg='#888888', bg='#2d2d2d').pack(pady=(10, 0))
-        
-        self.distance_label = tk.Label(distance_frame, text="-- m", 
-                                       font=('Helvetica', 72, 'bold'),
-                                       fg='#00ff88', bg='#2d2d2d')
-        self.distance_label.pack(pady=20)
-        
-        # Frame pour les statistiques
-        stats_frame = tk.Frame(main_frame, bg='#1e1e1e')
-        stats_frame.pack(fill=tk.X, pady=10)
-        
-        # Grille de stats
-        stats_data = [
-            ("Min", "min_label", "#ff6b6b"),
-            ("Max", "max_label", "#4ecdc4"),
-            ("Moyenne", "avg_label", "#ffe66d"),
-            ("Médiane", "median_label", "#ffd480"),
-            ("Mesures", "count_label", "#95e1d3")
-        ]
-        
-        for i, (title, attr, color) in enumerate(stats_data):
-            frame = tk.Frame(stats_frame, bg='#2d2d2d', relief='ridge', bd=1)
-            frame.grid(row=0, column=i, padx=5, pady=5, sticky='nsew')
-            stats_frame.columnconfigure(i, weight=1)
-            
-            tk.Label(frame, text=title, font=('Helvetica', 10), 
-                    fg='#888888', bg='#2d2d2d').pack(pady=(5, 0))
-            label = tk.Label(frame, text="--", font=('Helvetica', 18, 'bold'), 
-                           fg=color, bg='#2d2d2d')
-            label.pack(pady=(0, 5))
-            setattr(self, attr, label)
-        
-        # Graphique (si matplotlib disponible)
-        if MATPLOTLIB_AVAILABLE:
-            self._build_graph(main_frame)
-        
-        # Log des messages
-        log_frame = tk.Frame(main_frame, bg='#1e1e1e')
-        log_frame.pack(fill=tk.BOTH, expand=True, pady=10)
-        
-        tk.Label(log_frame, text="📋 Log des messages", 
-                font=('Helvetica', 12, 'bold'),
-                fg='#888888', bg='#1e1e1e').pack(anchor='w')
-        
-        # Zone de texte avec scrollbar
-        log_container = tk.Frame(log_frame, bg='#2d2d2d')
-        log_container.pack(fill=tk.BOTH, expand=True, pady=5)
-        
-        scrollbar = tk.Scrollbar(log_container)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        
-        self.log_text = tk.Text(log_container, height=8, 
-                               font=('Consolas', 9),
-                               bg='#2d2d2d', fg='#888888',
-                               yscrollcommand=scrollbar.set,
-                               state='disabled')
-        self.log_text.pack(fill=tk.BOTH, expand=True)
-        scrollbar.config(command=self.log_text.yview)
-        
-        # Boutons de contrôle
+        # ====== Boutons de contrôle (packés EN PREMIER avec side=BOTTOM) ======
         button_frame = tk.Frame(main_frame, bg='#1e1e1e')
-        button_frame.pack(fill=tk.X, pady=10)
+        button_frame.pack(fill=tk.X, pady=(5, 0), side=tk.BOTTOM)
         
         self.clear_btn = tk.Button(button_frame, text="🗑️ Effacer", 
                                   font=('Helvetica', 10),
@@ -347,6 +289,76 @@ class DistanceMonitorApp:
                                     font=('Helvetica', 10),
                                     fg='#ff6b6b', bg='#1e1e1e')
         self.status_label.pack(side=tk.RIGHT, padx=5)
+        
+        # ====== Log des messages (packé avec side=BOTTOM, au-dessus des boutons) ======
+        log_frame = tk.Frame(main_frame, bg='#1e1e1e')
+        log_frame.pack(fill=tk.X, pady=5, side=tk.BOTTOM)
+        
+        tk.Label(log_frame, text="📋 Log des messages", 
+                font=('Helvetica', 12, 'bold'),
+                fg='#888888', bg='#1e1e1e').pack(anchor='w')
+        
+        log_container = tk.Frame(log_frame, bg='#2d2d2d')
+        log_container.pack(fill=tk.X, pady=5)
+        
+        scrollbar = tk.Scrollbar(log_container)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        self.log_text = tk.Text(log_container, height=4, 
+                               font=('Consolas', 9),
+                               bg='#2d2d2d', fg='#888888',
+                               yscrollcommand=scrollbar.set,
+                               state='disabled')
+        self.log_text.pack(fill=tk.BOTH, expand=True)
+        scrollbar.config(command=self.log_text.yview)
+        
+        # ====== Contenu principal (packé avec side=TOP, remplit l'espace restant) ======
+        # Titre
+        title_label = tk.Label(main_frame, text="📡 UWB Distance Monitor", 
+                              font=('Helvetica', 24, 'bold'),
+                              fg='#00ff88', bg='#1e1e1e')
+        title_label.pack(pady=(0, 10))
+        
+        # Frame pour la distance actuelle
+        distance_frame = tk.Frame(main_frame, bg='#2d2d2d', relief='ridge', bd=2)
+        distance_frame.pack(fill=tk.X, pady=5)
+        
+        tk.Label(distance_frame, text="Distance actuelle", 
+                font=('Helvetica', 14), fg='#888888', bg='#2d2d2d').pack(pady=(5, 0))
+        
+        self.distance_label = tk.Label(distance_frame, text="-- m", 
+                                       font=('Helvetica', 72, 'bold'),
+                                       fg='#00ff88', bg='#2d2d2d')
+        self.distance_label.pack(pady=10)
+        
+        # Frame pour les statistiques
+        stats_frame = tk.Frame(main_frame, bg='#1e1e1e')
+        stats_frame.pack(fill=tk.X, pady=5)
+        
+        # Grille de stats
+        stats_data = [
+            ("Min", "min_label", "#ff6b6b"),
+            ("Max", "max_label", "#4ecdc4"),
+            ("Moyenne", "avg_label", "#ffe66d"),
+            ("Médiane", "median_label", "#ffd480"),
+            ("Mesures", "count_label", "#95e1d3")
+        ]
+        
+        for i, (title, attr, color) in enumerate(stats_data):
+            frame = tk.Frame(stats_frame, bg='#2d2d2d', relief='ridge', bd=1)
+            frame.grid(row=0, column=i, padx=5, pady=5, sticky='nsew')
+            stats_frame.columnconfigure(i, weight=1)
+            
+            tk.Label(frame, text=title, font=('Helvetica', 10), 
+                    fg='#888888', bg='#2d2d2d').pack(pady=(5, 0))
+            label = tk.Label(frame, text="--", font=('Helvetica', 18, 'bold'), 
+                           fg=color, bg='#2d2d2d')
+            label.pack(pady=(0, 5))
+            setattr(self, attr, label)
+        
+        # Graphique (si matplotlib disponible)
+        if MATPLOTLIB_AVAILABLE:
+            self._build_graph(main_frame)
         
     def _build_graph(self, parent):
         """Construction du graphique matplotlib"""
@@ -402,13 +414,13 @@ class DistanceMonitorApp:
         return sum(self.distances) / len(self.distances)
 
     def _compute_median(self):
-        """Retourne la médiane des dernières mesures stockées (jusqu'à 100).
+        """Retourne la médiane glissante des dernières mesures stockées.
         Renvoie 0.0 si aucune mesure n'est disponible.
         """
-        if not self.distances:
+        if not self.median_window:
             return 0.0
         # Utilise statistics.median pour gérer pair/impair proprement
-        return statistics.median(self.distances)
+        return statistics.median(self.median_window)
 
     def _update_distance(self, distance):
         """Mise à jour de l'affichage de la distance"""
@@ -421,6 +433,7 @@ class DistanceMonitorApp:
         
         self.distances.append(distance)
         self.timestamps.append(datetime.now())
+        self.median_window.append(distance)
         
         # Utilisation de la fonction de moyenne glissante et calcul de la médiane
         self.avg_distance = self._compute_sliding_average()
@@ -549,6 +562,7 @@ class DistanceMonitorApp:
         """Efface toutes les données"""
         self.distances.clear()
         self.timestamps.clear()
+        self.median_window.clear()
         self.current_distance = 0.0
         self.min_distance = float('inf')
         self.max_distance = 0.0

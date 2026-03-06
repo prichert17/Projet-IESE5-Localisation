@@ -1,0 +1,221 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+import os
+import re
+
+# ==========================================
+# 1. FONCTIONS D'EXTRACTION ET CLASSIFICATION
+# ==========================================
+
+def extraire_distance_vraie(nom_fichier):
+    match = re.search(r'(\d+)\s*m', nom_fichier, re.IGNORECASE)
+    if match:
+        return float(match.group(1))
+    return None
+
+def classifier(chemin):
+    chemin_lower = chemin.lower()
+    
+    # Environnement
+    if "extérieur" in chemin_lower or "exterieur" in chemin_lower:
+        env = "Ext"
+    elif "intérieur" in chemin_lower or "interieur" in chemin_lower:
+        env = "Int"
+    else:
+        # Par défaut, si non précisé, on essaie de deviner ou on met Inconnu
+        env = "Inc"
+        # Astuce : si on a testé '3m sans obstacles', vous l'aviez fait en Intérieur dans vos exemples.
+        # On peut forcer "Int" ici si votre convention ne précise l'intérieur, mais restons stricts :
+        if "3m sans obsctacles" in chemin_lower: env = "Int" 
+    
+    # Ranging
+    if "single side" in chemin_lower or " ss " in chemin_lower or chemin_lower.startswith("ss "):
+        ranging = "SS"
+    elif "double side" in chemin_lower or " ds " in chemin_lower:
+        ranging = "DS"
+    else:
+        ranging = "DS"  
+    
+    # Canal
+    if "canal 5" in chemin_lower or "canal5" in chemin_lower:
+        canal = "CH5"
+    else:
+        canal = "CH9"
+    
+    # Obstacle
+    if "sans obstacle" in chemin_lower or "sans obsctacle" in chemin_lower or "sans obsctacles" in chemin_lower:
+        obstacle = "Sans obs"
+    elif "humain" in chemin_lower:
+        obstacle = "Obs humain"
+    elif "métal" in chemin_lower or "metal" in chemin_lower:
+        obstacle = "Obs métal"
+    elif "wifi" in chemin_lower:
+        obstacle = "Perturb WiFi"
+    else:
+        obstacle = "Autre"
+        
+    return env, ranging, canal, obstacle
+
+# ==========================================
+# 2. EXTRACTION DES 100 MESURES
+# ==========================================
+
+def extraire_segment_stable_lignes(chemin_fichier, nb_lignes=100):
+    df = pd.read_csv(chemin_fichier, sep=None, engine='python')
+    df.columns = [c.strip() for c in df.columns]
+    
+    df['Timestamp'] = pd.to_datetime(df['Timestamp'])
+    df = df.sort_values('Timestamp').reset_index(drop=True)
+    
+    if len(df) <= nb_lignes:
+        segment = df.copy()
+    else:
+        rolling_std = df['Distance (m)'].rolling(window=nb_lignes).std()
+        idx_fin = rolling_std.idxmin()
+        idx_debut = idx_fin - nb_lignes + 1
+        segment = df.iloc[int(idx_debut):int(idx_fin)+1].copy()
+            
+    # Index de 1 à 100 pour l'axe des abscisses
+    segment['IndexMesure'] = np.arange(1, len(segment) + 1)
+    
+    return segment
+
+# ==========================================
+# 3. CRÉATION DES SCÉNARIOS ET GRAPHIQUES
+# ==========================================
+
+def generer_graphes_scenarios(dossier_racine, nb_points=100):
+    # Initialisation des différents scénarios demandés
+    scenarios = {
+        "1m-int_Obstacles": [],
+        "3m-int_Obstacles": [],
+        "5m-int_Obstacles": [],
+        "9m-int_Obstacles": [],
+        
+        "1m-ext_Obstacles": [],
+        "3m-ext_Obstacles": [],
+        "5m-ext_Obstacles": [],
+        "10m-ext_Obstacles": [],
+        
+        "10m-ext_Canaux": [],
+        "20m-ext_Canaux": []
+    }
+    
+    # 1. Parcours et classification de tous les fichiers
+    for dirpath, dirnames, filenames in os.walk(dossier_racine):
+        for filename in filenames:
+            if filename.endswith(".csv"):
+                chemin = os.path.join(dirpath, filename)
+                dist = extraire_distance_vraie(chemin)
+                if dist is None:
+                    continue
+                    
+                env, ranging, canal, obs = classifier(chemin)
+                
+                # Remplissage : Intérieur - Obstacles (Sans obs, Humain, Métal)
+                if env == "Int" and obs in ["Sans obs", "Obs humain", "Obs métal"]:
+                    if dist == 1: scenarios["1m-int_Obstacles"].append(chemin)
+                    elif dist == 3: scenarios["3m-int_Obstacles"].append(chemin)
+                    elif dist == 5: scenarios["5m-int_Obstacles"].append(chemin)
+                    elif dist == 9: scenarios["9m-int_Obstacles"].append(chemin)
+                
+                # Remplissage : Extérieur - Obstacles (Sans obs, Humain)
+                if env == "Ext" and obs in ["Sans obs", "Obs humain"]:
+                    if dist == 1: scenarios["1m-ext_Obstacles"].append(chemin)
+                    elif dist == 3: scenarios["3m-ext_Obstacles"].append(chemin)
+                    elif dist == 5: scenarios["5m-ext_Obstacles"].append(chemin)
+                    elif dist == 10: scenarios["10m-ext_Obstacles"].append(chemin)
+                
+                # Remplissage : Extérieur - Canaux (CH5 vs CH9)
+                if env == "Ext":
+                    # On prend tous les fichiers 10m/20m extérieurs pour comparer les canaux
+                    if dist == 10: scenarios["10m-ext_Canaux"].append(chemin)
+                    elif dist == 20: scenarios["20m-ext_Canaux"].append(chemin)
+
+    # 2. Génération d'un graphique par scénario
+    for nom_scenario, fichiers in scenarios.items():
+        if not fichiers:
+            continue # Si aucun fichier ne correspond à ce scénario, on passe
+            
+        print(f"Génération du graphe pour : {nom_scenario} ({len(fichiers)} fichiers trouvés)")
+        
+        # On extrait la distance théorique à partir du nom du scénario (ex: "3" depuis "3m-int_Obstacles")
+        dist_theorique = float(re.search(r'(\d+)m', nom_scenario).group(1))
+        
+        plt.figure(figsize=(14, 7))
+        
+        for fichier in fichiers:
+            try:
+                segment = extraire_segment_stable_lignes(fichier, nb_points)
+                env, ranging, canal, obs = classifier(fichier)
+                
+                std = segment['Distance (m)'].std()
+                biais = segment['Distance (m)'].mean() - dist_theorique
+                
+                # Création du libellé de la courbe
+                label_courbe = f"[{env}|{canal}|{obs}] (Std: {std:.2f}m, Biais: {biais:+.2f}m)"
+                
+                # Tracé avec l'IndexMesure (1 à 100) en X
+                plt.plot(segment['IndexMesure'], segment['Distance (m)'], label=label_courbe, marker='.', markersize=4, alpha=0.8)
+                
+            except Exception as e:
+                print(f"  -> Erreur sur {fichier} : {e}")
+        
+        # Ligne de la vraie distance
+        plt.axhline(y=dist_theorique, color='red', linestyle='--', label=f'Distance Réelle ({dist_theorique}m)', linewidth=2.5)
+        
+        # Mise en forme du titre pour qu'il soit propre ("Comparaison 10m-ext Canaux" etc.)
+        titre_propre = nom_scenario.replace('_', ' - ').replace('int', 'Intérieur').replace('ext', 'Extérieur')
+        plt.title(f'Scénario : {titre_propre}\n(Les {nb_points} mesures consécutives les plus stables)', fontsize=14, fontweight='bold')
+        
+        plt.xlabel(f'Numéro de la mesure (de 1 à {nb_points})', fontsize=11)
+        plt.ylabel('Distance mesurée (m)', fontsize=11)
+        
+        # Formatage esthétique
+        plt.xticks(np.arange(0, nb_points + 1, 10))
+        plt.xlim(1, nb_points)
+
+        # Définir les limites Y en fonction des valeurs mesurées (min/max) avec une petite marge
+        try:
+            ax = plt.gca()
+            y_min = np.inf
+            y_max = -np.inf
+            for line in ax.get_lines():
+                # Ignorer la ligne pointillée représentant la distance théorique
+                if line.get_linestyle() == '--':
+                    continue
+                data = np.asarray(line.get_ydata())
+                if data.size == 0:
+                    continue
+                # Ignorer les NaN
+                data = data[~np.isnan(data)]
+                if data.size == 0:
+                    continue
+                y_min = min(y_min, data.min())
+                y_max = max(y_max, data.max())
+
+            if np.isfinite(y_min) and np.isfinite(y_max):
+                margin = (y_max - y_min) * 0.10 if (y_max - y_min) > 0 else 0.05
+                plt.ylim(y_min - margin, y_max + margin)
+            else:
+                # Repli : zoom autour de la distance théorique si pas de données valides
+                plt.ylim(dist_theorique - (dist_theorique*0.17), dist_theorique + (dist_theorique*0.17))
+        except Exception:
+            plt.ylim(dist_theorique - (dist_theorique*0.17), dist_theorique + (dist_theorique*0.17))
+        
+        plt.legend(bbox_to_anchor=(1.02, 1), loc='upper left', fontsize='small')
+        plt.grid(True, linestyle=':', alpha=0.7)
+        plt.tight_layout()
+        
+        nom_graphe = f"Graphique_{nom_scenario}.png"
+        plt.savefig(nom_graphe, dpi=150, bbox_inches="tight")
+        print(f"  -> Sauvegardé : {nom_graphe}")
+        plt.show()
+
+# ==========================================
+# EXÉCUTION
+# ==========================================
+if __name__ == "__main__":
+    dossier_a_analyser = "." 
+    generer_graphes_scenarios(dossier_a_analyser, nb_points=100)

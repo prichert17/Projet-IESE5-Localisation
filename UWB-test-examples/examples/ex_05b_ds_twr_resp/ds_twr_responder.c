@@ -35,7 +35,7 @@ extern void test_run_info(unsigned char *data);
 
 /* Default communication configuration. We use default non-STS DW mode. */
 static dwt_config_t config = {
-    9,                /* Channel number. */
+    5,                /* Channel number. */
     DWT_PLEN_128,     /* Preamble length. Used in TX only. */
     DWT_PAC8,         /* Preamble acquisition chunk size. Used in RX only. */
     9,                /* TX preamble code. Used in TX only. */
